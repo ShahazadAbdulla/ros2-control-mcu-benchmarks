@@ -6,8 +6,8 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "driver/uart.h" // Added for UART_NUM_0
 
-#include <uros_network_interfaces.h>
 #include <rmw_microros/rmw_microros.h>
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
@@ -35,11 +35,11 @@ void micro_ros_task(void * arg)
     rcl_allocator_t allocator = rcl_get_default_allocator();
     rclc_support_t support;
 
+    // 1. Set the physical transport to Serial over the default USB port
+    set_microros_serial_transports(UART_NUM_0);
+
     rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
     RCCHECK(rcl_init_options_init(&init_options, allocator));
-
-    rmw_init_options_t* rmw_options = rcl_init_options_get_rmw_init_options(&init_options);
-    RCCHECK(rmw_uros_options_set_udp_address(CONFIG_MICRO_ROS_AGENT_IP, CONFIG_MICRO_ROS_AGENT_PORT, rmw_options));
 
     RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
 
@@ -60,16 +60,14 @@ void micro_ros_task(void * arg)
     
     while(1){
         rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1));
-        vTaskDelay(1); 
+        // Yield to other tasks without forcing a strict 1ms sleep timer
+        vTaskDelay(0); 
     }
 }
 
 void app_main(void)
 {
-#if defined(CONFIG_MICRO_ROS_ESP_NETIF_WLAN) || defined(CONFIG_MICRO_ROS_ESP_NETIF_ENET)
-    ESP_ERROR_CHECK(uros_network_interface_initialize());
-#endif
-
+    // Note: Wi-Fi initialization is completely removed.
     xTaskCreatePinnedToCore(micro_ros_task,
             "uros_task",
             CONFIG_MICRO_ROS_APP_STACK,

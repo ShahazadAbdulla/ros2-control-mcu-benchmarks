@@ -1,0 +1,15 @@
+# Global Ignore
+build/
+managed_components/
+dependencies.lock
+sdkconfig
+sdkconfig.old
+.vscode/
+.DS_Store
+
+# Test 1: Keep everything except standard global ignores
+# (No specific excludes needed here based on your ls output)
+
+# Test 2: Ignore EVERYTHING inside except main.c
+test_2_picoros/*
+!test_2_picoros/main.c
